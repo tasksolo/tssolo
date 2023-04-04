@@ -1,9 +1,12 @@
 go := env_var_or_default('GOCMD', 'go')
 
-default: test
+default: build test
+
+build:
+	tsc
 
 test:
-	tsc --noEmit
+	node test.js
 
 todo:
 	-git grep -e TODO --and --not -e ignoretodo
