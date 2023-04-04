@@ -1,0 +1,12 @@
+{
+	"compilerOptions": {
+		"module": "esnext",
+		"strict": true,
+		"noImplicitAny": true,
+		"preserveConstEnums": true,
+		"sourceMap": true
+	},
+	"files": [
+		"client.ts"
+	]
+}
