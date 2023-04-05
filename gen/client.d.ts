@@ -61,15 +61,19 @@ export declare class Client {
     createTask(obj: Task): Promise<Task>;
     deleteTask(id: string): Promise<void>;
     getTask(id: string): Promise<Task>;
+    listTask(): Promise<Task[]>;
     createToken(obj: Token): Promise<Token>;
     deleteToken(id: string): Promise<void>;
     getToken(id: string): Promise<Token>;
+    listToken(): Promise<Token[]>;
     createUser(obj: User): Promise<User>;
     deleteUser(id: string): Promise<void>;
     getUser(id: string): Promise<User>;
+    listUser(): Promise<User[]>;
     createName<T>(name: string, obj: T): Promise<T>;
     deleteName(name: string, id: string): Promise<void>;
     getName<T>(name: string, id: string): Promise<T>;
+    listName<T>(name: string): Promise<T[]>;
     private fetch;
 }
 export declare class Error {

@@ -24,8 +24,13 @@ export class Client {
         return this.deleteName("task", id);
     }
     // TODO: Add fetch*()
+    // TODO: Add GetOpts
     async getTask(id) {
         return this.getName("task", id);
+    }
+    // TODO: Add ListOpts
+    async listTask() {
+        return this.listName("task");
     }
     //// Token
     async createToken(obj) {
@@ -36,8 +41,13 @@ export class Client {
         return this.deleteName("token", id);
     }
     // TODO: Add fetch*()
+    // TODO: Add GetOpts
     async getToken(id) {
         return this.getName("token", id);
+    }
+    // TODO: Add ListOpts
+    async listToken() {
+        return this.listName("token");
     }
     //// User
     async createUser(obj) {
@@ -48,8 +58,13 @@ export class Client {
         return this.deleteName("user", id);
     }
     // TODO: Add fetch*()
+    // TODO: Add GetOpts
     async getUser(id) {
         return this.getName("user", id);
+    }
+    // TODO: Add ListOpts
+    async listUser() {
+        return this.listName("user");
     }
     //// Generic
     async createName(name, obj) {
@@ -60,8 +75,13 @@ export class Client {
         return this.fetch('DELETE', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
     }
     // TODO: Add findName()
+    // TODO: Add GetOpts
     async getName(name, id) {
         return this.fetch('GET', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
+    }
+    // TODO: Add ListOpts
+    async listName(name) {
+        return this.fetch('GET', `${encodeURIComponent(name)}`);
     }
     async fetch(method, path, body) {
         const url = new URL(path, this.baseURL);

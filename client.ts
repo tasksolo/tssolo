@@ -96,8 +96,14 @@ export class Client {
 
 	// TODO: Add fetch*()
 
+	// TODO: Add GetOpts
 	async getTask(id: string): Promise<Task> {
 		return this.getName("task", id);
+	}
+
+	// TODO: Add ListOpts
+	async listTask(): Promise<Task[]> {
+		return this.listName("task");
 	}
 
 	//// Token
@@ -113,8 +119,14 @@ export class Client {
 
 	// TODO: Add fetch*()
 
+	// TODO: Add GetOpts
 	async getToken(id: string): Promise<Token> {
 		return this.getName("token", id);
+	}
+
+	// TODO: Add ListOpts
+	async listToken(): Promise<Token[]> {
+		return this.listName("token");
 	}
 
 	//// User
@@ -130,8 +142,14 @@ export class Client {
 
 	// TODO: Add fetch*()
 
+	// TODO: Add GetOpts
 	async getUser(id: string): Promise<User> {
 		return this.getName("user", id);
+	}
+
+	// TODO: Add ListOpts
+	async listUser(): Promise<User[]> {
+		return this.listName("user");
 	}
 
 	//// Generic
@@ -147,8 +165,14 @@ export class Client {
 
 	// TODO: Add findName()
 
+	// TODO: Add GetOpts
 	async getName<T>(name: string, id: string): Promise<T> {
 		return this.fetch('GET', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
+	}
+
+	// TODO: Add ListOpts
+	async listName<T>(name: string): Promise<T[]> {
+		return this.fetch('GET', `${encodeURIComponent(name)}`);
 	}
 
 	private async fetch(method: string, path: string, body?: any): Promise<any> {
