@@ -19,22 +19,37 @@ export class Client {
     async createTask(obj) {
         return this.createName("task", obj);
     }
+    // TODO: Add UpdateOpts
     async deleteTask(id) {
         return this.deleteName("task", id);
+    }
+    // TODO: Add fetch*()
+    async getTask(id) {
+        return this.getName("task", id);
     }
     //// Token
     async createToken(obj) {
         return this.createName("token", obj);
     }
+    // TODO: Add UpdateOpts
     async deleteToken(id) {
         return this.deleteName("token", id);
+    }
+    // TODO: Add fetch*()
+    async getToken(id) {
+        return this.getName("token", id);
     }
     //// User
     async createUser(obj) {
         return this.createName("user", obj);
     }
+    // TODO: Add UpdateOpts
     async deleteUser(id) {
         return this.deleteName("user", id);
+    }
+    // TODO: Add fetch*()
+    async getUser(id) {
+        return this.getName("user", id);
     }
     //// Generic
     async createName(name, obj) {
@@ -43,6 +58,10 @@ export class Client {
     // TODO: Add UpdateOpts
     async deleteName(name, id) {
         return this.fetch('DELETE', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
+    }
+    // TODO: Add findName()
+    async getName(name, id) {
+        return this.fetch('GET', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
     }
     async fetch(method, path, body) {
         const url = new URL(path, this.baseURL);

@@ -89,8 +89,15 @@ export class Client {
 		return this.createName("task", obj);
 	}
 
+	// TODO: Add UpdateOpts
 	async deleteTask(id: string): Promise<void> {
 		return this.deleteName("task", id);
+	}
+
+	// TODO: Add fetch*()
+
+	async getTask(id: string): Promise<Task> {
+		return this.getName("task", id);
 	}
 
 	//// Token
@@ -99,8 +106,15 @@ export class Client {
 		return this.createName("token", obj);
 	}
 
+	// TODO: Add UpdateOpts
 	async deleteToken(id: string): Promise<void> {
 		return this.deleteName("token", id);
+	}
+
+	// TODO: Add fetch*()
+
+	async getToken(id: string): Promise<Token> {
+		return this.getName("token", id);
 	}
 
 	//// User
@@ -109,8 +123,15 @@ export class Client {
 		return this.createName("user", obj);
 	}
 
+	// TODO: Add UpdateOpts
 	async deleteUser(id: string): Promise<void> {
 		return this.deleteName("user", id);
+	}
+
+	// TODO: Add fetch*()
+
+	async getUser(id: string): Promise<User> {
+		return this.getName("user", id);
 	}
 
 	//// Generic
@@ -122,6 +143,12 @@ export class Client {
 	// TODO: Add UpdateOpts
 	async deleteName(name: string, id: string): Promise<void> {
 		return this.fetch('DELETE', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
+	}
+
+	// TODO: Add findName()
+
+	async getName<T>(name: string, id: string): Promise<T> {
+		return this.fetch('GET', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
 	}
 
 	private async fetch(method: string, path: string, body?: any): Promise<any> {
