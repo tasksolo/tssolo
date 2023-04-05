@@ -19,17 +19,30 @@ export class Client {
     async createTask(obj) {
         return this.createName("task", obj);
     }
+    async deleteTask(id) {
+        return this.deleteName("task", id);
+    }
     //// Token
     async createToken(obj) {
         return this.createName("token", obj);
+    }
+    async deleteToken(id) {
+        return this.deleteName("token", id);
     }
     //// User
     async createUser(obj) {
         return this.createName("user", obj);
     }
+    async deleteUser(id) {
+        return this.deleteName("user", id);
+    }
     //// Generic
     async createName(name, obj) {
-        return this.fetch('POST', name, obj);
+        return this.fetch('POST', encodeURIComponent(name), obj);
+    }
+    // TODO: Add UpdateOpts
+    async deleteName(name, id) {
+        return this.fetch('DELETE', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
     }
     async fetch(method, path, body) {
         const url = new URL(path, this.baseURL);
@@ -50,7 +63,9 @@ export class Client {
         if (!resp.ok) {
             throw new Error(await resp.json());
         }
-        return resp.json();
+        if (resp.status == 200) {
+            return resp.json();
+        }
     }
 }
 export class Error {

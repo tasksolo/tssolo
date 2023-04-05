@@ -89,10 +89,18 @@ export class Client {
 		return this.createName("task", obj);
 	}
 
+	async deleteTask(id: string): Promise<void> {
+		return this.deleteName("task", id);
+	}
+
 	//// Token
 
 	async createToken(obj: Token): Promise<Token> {
 		return this.createName("token", obj);
+	}
+
+	async deleteToken(id: string): Promise<void> {
+		return this.deleteName("token", id);
 	}
 
 	//// User
@@ -101,10 +109,19 @@ export class Client {
 		return this.createName("user", obj);
 	}
 
+	async deleteUser(id: string): Promise<void> {
+		return this.deleteName("user", id);
+	}
+
 	//// Generic
 
 	async createName<T>(name: string, obj: T): Promise<T> {
-		return this.fetch('POST', name, obj);
+		return this.fetch('POST', encodeURIComponent(name), obj);
+	}
+
+	// TODO: Add UpdateOpts
+	async deleteName(name: string, id: string): Promise<void> {
+		return this.fetch('DELETE', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
 	}
 
 	private async fetch(method: string, path: string, body?: any): Promise<any> {
@@ -131,7 +148,9 @@ export class Client {
 			throw new Error(await resp.json());
 		}
 
-		return resp.json();
+		if (resp.status == 200) {
+			return resp.json();
+		}
 	}
 }
 

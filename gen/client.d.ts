@@ -59,9 +59,13 @@ export declare class Client {
     setAuthToken(token: string): void;
     debugInfo(): Promise<DebugInfo>;
     createTask(obj: Task): Promise<Task>;
+    deleteTask(id: string): Promise<void>;
     createToken(obj: Token): Promise<Token>;
+    deleteToken(id: string): Promise<void>;
     createUser(obj: User): Promise<User>;
+    deleteUser(id: string): Promise<void>;
     createName<T>(name: string, obj: T): Promise<T>;
+    deleteName(name: string, id: string): Promise<void>;
     private fetch;
 }
 export declare class Error {
