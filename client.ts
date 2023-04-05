@@ -75,6 +75,10 @@ export class Client {
 		this.headers.set('Authorization', `Basic ${enc}`);
 	}
 
+	setAuthToken(token: string) {
+		this.headers.set('Authorization', `Bearer ${token}`);
+	}
+
 	async debugInfo(): Promise<DebugInfo> {
 		return this.fetch('_debug');
 	}
@@ -103,6 +107,6 @@ export class Error {
 	}
 
 	toString(): string {
-		return this.messages[0];
+		return this.messages[0] ?? 'error';
 	}
 }

@@ -9,6 +9,9 @@ export class Client {
         const enc = btoa(`${user}:${pass}`);
         this.headers.set('Authorization', `Basic ${enc}`);
     }
+    setAuthToken(token) {
+        this.headers.set('Authorization', `Bearer ${token}`);
+    }
     async debugInfo() {
         return this.fetch('_debug');
     }
@@ -30,7 +33,7 @@ export class Error {
         this.messages = json.messages;
     }
     toString() {
-        return this.messages[0];
+        return this.messages[0] ?? 'error';
     }
 }
 //# sourceMappingURL=client.js.map
