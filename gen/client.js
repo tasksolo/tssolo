@@ -32,6 +32,16 @@ export class Client {
     async listTask() {
         return this.listName("task");
     }
+    // TODO: Add UpdateOpts
+    async replaceTask(id, obj) {
+        return this.replaceName("task", id, obj);
+    }
+    // TODO: Add UpdateOpts
+    async updateTask(id, obj) {
+        return this.updateName("task", id, obj);
+    }
+    // TODO: Add streamGet
+    // TODO: Add streamList
     //// Token
     async createToken(obj) {
         return this.createName("token", obj);
@@ -49,6 +59,16 @@ export class Client {
     async listToken() {
         return this.listName("token");
     }
+    // TODO: Add UpdateOpts
+    async replaceToken(id, obj) {
+        return this.replaceName("token", id, obj);
+    }
+    // TODO: Add UpdateOpts
+    async updateToken(id, obj) {
+        return this.updateName("token", id, obj);
+    }
+    // TODO: Add streamGet
+    // TODO: Add streamList
     //// User
     async createUser(obj) {
         return this.createName("user", obj);
@@ -66,6 +86,16 @@ export class Client {
     async listUser() {
         return this.listName("user");
     }
+    // TODO: Add UpdateOpts
+    async replaceUser(id, obj) {
+        return this.replaceName("user", id, obj);
+    }
+    // TODO: Add UpdateOpts
+    async updateUser(id, obj) {
+        return this.updateName("user", id, obj);
+    }
+    // TODO: Add streamGet
+    // TODO: Add streamList
     //// Generic
     async createName(name, obj) {
         return this.fetch('POST', encodeURIComponent(name), obj);
@@ -83,6 +113,16 @@ export class Client {
     async listName(name) {
         return this.fetch('GET', `${encodeURIComponent(name)}`);
     }
+    // TODO: Add UpdateOpts
+    async replaceName(name, id, obj) {
+        return this.fetch('PUT', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`, obj);
+    }
+    // TODO: Add UpdateOpts
+    async updateName(name, id, obj) {
+        return this.fetch('PATCH', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`, obj);
+    }
+    // TODO: Add streamGetName
+    // TODO: Add streamListName
     async fetch(method, path, body) {
         const url = new URL(path, this.baseURL);
         const opts = {

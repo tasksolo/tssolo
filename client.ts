@@ -106,6 +106,19 @@ export class Client {
 		return this.listName("task");
 	}
 
+	// TODO: Add UpdateOpts
+	async replaceTask(id: string, obj: Task): Promise<Task> {
+		return this.replaceName("task", id, obj);
+	}
+
+	// TODO: Add UpdateOpts
+	async updateTask(id: string, obj: Task): Promise<Task> {
+		return this.updateName("task", id, obj);
+	}
+
+	// TODO: Add streamGet
+	// TODO: Add streamList
+
 	//// Token
 
 	async createToken(obj: Token): Promise<Token> {
@@ -128,6 +141,19 @@ export class Client {
 	async listToken(): Promise<Token[]> {
 		return this.listName("token");
 	}
+
+	// TODO: Add UpdateOpts
+	async replaceToken(id: string, obj: Token): Promise<Token> {
+		return this.replaceName("token", id, obj);
+	}
+
+	// TODO: Add UpdateOpts
+	async updateToken(id: string, obj: Token): Promise<Token> {
+		return this.updateName("token", id, obj);
+	}
+
+	// TODO: Add streamGet
+	// TODO: Add streamList
 
 	//// User
 
@@ -152,6 +178,19 @@ export class Client {
 		return this.listName("user");
 	}
 
+	// TODO: Add UpdateOpts
+	async replaceUser(id: string, obj: User): Promise<User> {
+		return this.replaceName("user", id, obj);
+	}
+
+	// TODO: Add UpdateOpts
+	async updateUser(id: string, obj: User): Promise<User> {
+		return this.updateName("user", id, obj);
+	}
+
+	// TODO: Add streamGet
+	// TODO: Add streamList
+
 	//// Generic
 
 	async createName<T>(name: string, obj: T): Promise<T> {
@@ -174,6 +213,19 @@ export class Client {
 	async listName<T>(name: string): Promise<T[]> {
 		return this.fetch('GET', `${encodeURIComponent(name)}`);
 	}
+
+	// TODO: Add UpdateOpts
+	async replaceName<T>(name: string, id: string, obj: T): Promise<T> {
+		return this.fetch('PUT', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`, obj);
+	}
+
+	// TODO: Add UpdateOpts
+	async updateName<T>(name: string, id: string, obj: T): Promise<T> {
+		return this.fetch('PATCH', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`, obj);
+	}
+
+	// TODO: Add streamGetName
+	// TODO: Add streamListName
 
 	private async fetch(method: string, path: string, body?: any): Promise<any> {
 		const url = new URL(path, this.baseURL);
