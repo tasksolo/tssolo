@@ -12,9 +12,9 @@ export interface JSONError {
 }
 
 export interface Task {
-	id:          string;
-	etag:        string;
-	generation:  number;
+	id?:         string | null;
+	etag?:       string | null;
+	generation?: number | null;
 	userID?:     string | null;
 	name?:       string | null;
 	complete?:   boolean | null;
@@ -22,17 +22,17 @@ export interface Task {
 }
 
 export interface Token {
-	id:          string;
-	etag:        string;
-	generation:  number;
+	id?:         string | null;
+	etag?:       string | null;
+	generation?: number | null;
 	userID?:     string | null;
 	token?:      string | null;
 }
 
 export interface User {
-	id:            string;
-	etag:          string;
-	generation:    number;
+	id?:           string | null;
+	etag?:         string | null;
+	generation?:   number | null;
 	name?:         string | null;
 	email?:        string | null;
 	password?:     string | null;
@@ -80,15 +80,51 @@ export class Client {
 	}
 
 	async debugInfo(): Promise<DebugInfo> {
-		return this.fetch('_debug');
+		return this.fetch('GET', '_debug');
 	}
 
-	private async fetch(path: string): Promise<any> {
+	//// Task
+
+	async createTask(obj: Task): Promise<Task> {
+		return this.createName("task", obj);
+	}
+
+	//// Token
+
+	async createToken(obj: Token): Promise<Token> {
+		return this.createName("token", obj);
+	}
+
+	//// User
+
+	async createUser(obj: User): Promise<User> {
+		return this.createName("user", obj);
+	}
+
+	//// Generic
+
+	async createName<T>(name: string, obj: T): Promise<T> {
+		return this.fetch('POST', name, obj);
+	}
+
+	private async fetch(method: string, path: string, body?: any): Promise<any> {
 		const url = new URL(path, this.baseURL);
 
-		const req = new Request(url, {
-			headers: this.headers,
-		});
+		const opts: RequestInit = {
+			method: method,
+			headers: new Headers(this.headers),
+			mode: 'cors',
+			credentials: 'omit',
+			referrerPolicy: 'no-referrer',
+			keepalive: true,
+		}
+
+		if (body) {
+			opts.body = JSON.stringify(body);
+			(<Headers>opts.headers).set('Content-Type', 'application/json');
+		}
+
+		const req = new Request(url, opts);
 
 		const resp = await fetch(req);
 		if (!resp.ok) {

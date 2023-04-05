@@ -8,25 +8,25 @@ export interface JSONError {
     messages: string[];
 }
 export interface Task {
-    id: string;
-    etag: string;
-    generation: number;
+    id?: string | null;
+    etag?: string | null;
+    generation?: number | null;
     userID?: string | null;
     name?: string | null;
     complete?: boolean | null;
     after?: string | null;
 }
 export interface Token {
-    id: string;
-    etag: string;
-    generation: number;
+    id?: string | null;
+    etag?: string | null;
+    generation?: number | null;
     userID?: string | null;
     token?: string | null;
 }
 export interface User {
-    id: string;
-    etag: string;
-    generation: number;
+    id?: string | null;
+    etag?: string | null;
+    generation?: number | null;
     name?: string | null;
     email?: string | null;
     password?: string | null;
@@ -58,6 +58,10 @@ export declare class Client {
     setBasicAuth(user: string, pass: string): void;
     setAuthToken(token: string): void;
     debugInfo(): Promise<DebugInfo>;
+    createTask(obj: Task): Promise<Task>;
+    createToken(obj: Token): Promise<Token>;
+    createUser(obj: User): Promise<User>;
+    createName<T>(name: string, obj: T): Promise<T>;
     private fetch;
 }
 export declare class Error {
