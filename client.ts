@@ -64,9 +64,15 @@ export interface TLSInfo {
 
 export class Client {
 	private baseURL: URL;
+	private headers: Headers = new Headers();
 
 	constructor(baseURL: string) {
 		this.baseURL = new URL(baseURL);
+	}
+
+	setBasicAuth(user: string, pass: string) {
+		const enc = btoa(`${user}:${pass}`);
+		this.headers.set('Authorization', `Basic ${enc}`);
 	}
 
 	async debugInfo(): Promise<DebugInfo> {
@@ -76,7 +82,11 @@ export class Client {
 	private async fetch(path: string): Promise<any> {
 		const url = new URL(path, this.baseURL);
 
-		const resp = await fetch(url);
+		const req = new Request(url, {
+			headers: this.headers,
+		});
+
+		const resp = await fetch(req);
 		if (!resp.ok) {
 			throw new Error(await resp.json());
 		}

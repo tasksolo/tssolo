@@ -6,7 +6,7 @@ build:
 	tsc
 
 test:
-	node test.js
+	NODE_NO_WARNINGS=1 node test.js
 
 todo:
 	-git grep -e TODO --and --not -e ignoretodo

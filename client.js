@@ -1,15 +1,23 @@
 // Solø API client
 export class Client {
     baseURL;
+    headers = new Headers();
     constructor(baseURL) {
         this.baseURL = new URL(baseURL);
+    }
+    setBasicAuth(user, pass) {
+        const enc = btoa(`${user}:${pass}`);
+        this.headers.set('Authorization', `Basic ${enc}`);
     }
     async debugInfo() {
         return this.fetch('_debug');
     }
     async fetch(path) {
         const url = new URL(path, this.baseURL);
-        const resp = await fetch(url);
+        const req = new Request(url, {
+            headers: this.headers,
+        });
+        const resp = await fetch(req);
         if (!resp.ok) {
             throw new Error(await resp.json());
         }
