@@ -3,6 +3,7 @@
 		"target": "esnext",
 		"module": "esnext",
 
+		"outDir": "gen",
 		"declaration": true,
 		"declarationMap": true,
 		"inlineSources": true,
