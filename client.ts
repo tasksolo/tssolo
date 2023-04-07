@@ -39,6 +39,16 @@ export interface Task {
 	after?:      string | null;
 }
 
+export interface TaskResponse {
+	id:          string;
+	etag:        string;
+	generation:  number;
+	userID?:     string | null;
+	name?:       string | null;
+	complete?:   boolean | null;
+	after?:      string | null;
+}
+
 export interface Token {
 	id?:         string | null;
 	etag?:       string | null;
@@ -47,10 +57,28 @@ export interface Token {
 	token?:      string | null;
 }
 
+export interface TokenResponse {
+	id:          string;
+	etag:        string;
+	generation:  number;
+	userID?:     string | null;
+	token?:      string | null;
+}
+
 export interface User {
 	id?:           string | null;
 	etag?:         string | null;
 	generation?:   number | null;
+	name?:         string | null;
+	email?:        string | null;
+	password?:     string | null;
+	serviceAdmin?: boolean | null;
+}
+
+export interface UserResponse {
+	id:            string;
+	etag:          string;
+	generation:    number;
 	name?:         string | null;
 	email?:        string | null;
 	password?:     string | null;
@@ -86,6 +114,12 @@ export interface Filter {
 	value:  string;
 }
 
+export interface ObjectCore {
+	id:           string;
+	etag:         string;
+	generation:   number;
+}
+
 class ClientCore {
 	protected baseURL: URL;
 	protected headers: Headers = new Headers();
@@ -102,7 +136,7 @@ class ClientCore {
 
 	//// Generic
 
-	async createName<T>(name: string, obj: T): Promise<T> {
+	async createName<T1, T2>(name: string, obj: T1): Promise<T2> {
 		return this.fetch('POST', encodeURIComponent(name), null, null, null, obj);
 	}
 
@@ -113,9 +147,8 @@ class ClientCore {
 
 	// TODO: Add findName()
 
-	// TODO: Add GetOpts
-	async getName<T>(name: string, id: string): Promise<T> {
-		return this.fetch('GET', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
+	async getName<T>(name: string, id: string, opts?: GetOpts | null): Promise<T> {
+		return this.fetch('GET', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`, null, this.buildGetHeaders(opts), opts?.prev);
 	}
 
 	async listName<T>(name: string, opts?: ListOpts | null): Promise<T[]> {
@@ -123,12 +156,12 @@ class ClientCore {
 	}
 
 	// TODO: Add UpdateOpts
-	async replaceName<T>(name: string, id: string, obj: T): Promise<T> {
+	async replaceName<T1, T2>(name: string, id: string, obj: T1): Promise<T2> {
 		return this.fetch('PUT', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`, null, null, null, obj);
 	}
 
 	// TODO: Add UpdateOpts
-	async updateName<T>(name: string, id: string, obj: T): Promise<T> {
+	async updateName<T1, T2>(name: string, id: string, obj: T1): Promise<T2> {
 		return this.fetch('PATCH', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`, null, null, null, obj);
 	}
 
@@ -179,6 +212,20 @@ class ClientCore {
 		if (opts.prev) {
 			const etag = Object.getOwnPropertyDescriptor(opts.prev, ClientCore.etag)!.value;
 			headers.set('If-None-Match', etag);
+		}
+
+		return headers;
+	}
+
+	private buildGetHeaders(opts: GetOpts | null | undefined): Headers {
+		const headers = new Headers();
+
+		if (!opts) {
+			return headers;
+		}
+
+		if (opts.prev) {
+			headers.set('If-None-Match', `"${(<ObjectCore>opts.prev).etag}"`);
 		}
 
 		return headers;
@@ -253,7 +300,7 @@ export class Client extends ClientCore {
 
 	//// Task
 
-	async createTask(obj: Task): Promise<Task> {
+	async createTask(obj: Task): Promise<TaskResponse> {
 		return this.createName("task", obj);
 	}
 
@@ -264,22 +311,21 @@ export class Client extends ClientCore {
 
 	// TODO: Add find*()
 
-	// TODO: Add GetOpts
-	async getTask(id: string): Promise<Task> {
-		return this.getName("task", id);
+	async getTask(id: string, opts?: GetOpts | null): Promise<TaskResponse> {
+		return this.getName("task", id, opts);
 	}
 
-	async listTask(opts?: ListOpts | null): Promise<Task[]> {
+	async listTask(opts?: ListOpts | null): Promise<TaskResponse[]> {
 		return this.listName("task", opts);
 	}
 
 	// TODO: Add UpdateOpts
-	async replaceTask(id: string, obj: Task): Promise<Task> {
+	async replaceTask(id: string, obj: Task): Promise<TaskResponse> {
 		return this.replaceName("task", id, obj);
 	}
 
 	// TODO: Add UpdateOpts
-	async updateTask(id: string, obj: Task): Promise<Task> {
+	async updateTask(id: string, obj: Task): Promise<TaskResponse> {
 		return this.updateName("task", id, obj);
 	}
 
@@ -288,7 +334,7 @@ export class Client extends ClientCore {
 
 	//// Token
 
-	async createToken(obj: Token): Promise<Token> {
+	async createToken(obj: Token): Promise<TokenResponse> {
 		return this.createName("token", obj);
 	}
 
@@ -299,22 +345,21 @@ export class Client extends ClientCore {
 
 	// TODO: Add find*()
 
-	// TODO: Add GetOpts
-	async getToken(id: string): Promise<Token> {
-		return this.getName("token", id);
+	async getToken(id: string, opts?: GetOpts | null): Promise<TokenResponse> {
+		return this.getName("token", id, opts);
 	}
 
-	async listToken(opts?: ListOpts | null): Promise<Token[]> {
+	async listToken(opts?: ListOpts | null): Promise<TokenResponse[]> {
 		return this.listName("token", opts);
 	}
 
 	// TODO: Add UpdateOpts
-	async replaceToken(id: string, obj: Token): Promise<Token> {
+	async replaceToken(id: string, obj: Token): Promise<TokenResponse> {
 		return this.replaceName("token", id, obj);
 	}
 
 	// TODO: Add UpdateOpts
-	async updateToken(id: string, obj: Token): Promise<Token> {
+	async updateToken(id: string, obj: Token): Promise<TokenResponse> {
 		return this.updateName("token", id, obj);
 	}
 
@@ -323,7 +368,7 @@ export class Client extends ClientCore {
 
 	//// User
 
-	async createUser(obj: User): Promise<User> {
+	async createUser(obj: User): Promise<UserResponse> {
 		return this.createName("user", obj);
 	}
 
@@ -334,22 +379,21 @@ export class Client extends ClientCore {
 
 	// TODO: Add find*()
 
-	// TODO: Add GetOpts
-	async getUser(id: string): Promise<User> {
-		return this.getName("user", id);
+	async getUser(id: string, opts?: GetOpts | null): Promise<UserResponse> {
+		return this.getName("user", id, opts);
 	}
 
-	async listUser(opts?: ListOpts | null): Promise<User[]> {
+	async listUser(opts?: ListOpts | null): Promise<UserResponse[]> {
 		return this.listName("user", opts);
 	}
 
 	// TODO: Add UpdateOpts
-	async replaceUser(id: string, obj: User): Promise<User> {
+	async replaceUser(id: string, obj: User): Promise<UserResponse> {
 		return this.replaceName("user", id, obj);
 	}
 
 	// TODO: Add UpdateOpts
-	async updateUser(id: string, obj: User): Promise<User> {
+	async updateUser(id: string, obj: User): Promise<UserResponse> {
 		return this.updateName("user", id, obj);
 	}
 

@@ -18,9 +18,8 @@ class ClientCore {
         return this.fetch('DELETE', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
     }
     // TODO: Add findName()
-    // TODO: Add GetOpts
-    async getName(name, id) {
-        return this.fetch('GET', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
+    async getName(name, id, opts) {
+        return this.fetch('GET', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`, null, this.buildGetHeaders(opts), opts?.prev);
     }
     async listName(name, opts) {
         return this.fetch('GET', `${encodeURIComponent(name)}`, this.buildListParams(opts), this.buildListHeaders(opts), opts?.prev);
@@ -68,6 +67,16 @@ class ClientCore {
         if (opts.prev) {
             const etag = Object.getOwnPropertyDescriptor(opts.prev, ClientCore.etag).value;
             headers.set('If-None-Match', etag);
+        }
+        return headers;
+    }
+    buildGetHeaders(opts) {
+        const headers = new Headers();
+        if (!opts) {
+            return headers;
+        }
+        if (opts.prev) {
+            headers.set('If-None-Match', `"${opts.prev.etag}"`);
         }
         return headers;
     }
@@ -132,9 +141,8 @@ export class Client extends ClientCore {
         return this.deleteName("task", id);
     }
     // TODO: Add find*()
-    // TODO: Add GetOpts
-    async getTask(id) {
-        return this.getName("task", id);
+    async getTask(id, opts) {
+        return this.getName("task", id, opts);
     }
     async listTask(opts) {
         return this.listName("task", opts);
@@ -158,9 +166,8 @@ export class Client extends ClientCore {
         return this.deleteName("token", id);
     }
     // TODO: Add find*()
-    // TODO: Add GetOpts
-    async getToken(id) {
-        return this.getName("token", id);
+    async getToken(id, opts) {
+        return this.getName("token", id, opts);
     }
     async listToken(opts) {
         return this.listName("token", opts);
@@ -184,9 +191,8 @@ export class Client extends ClientCore {
         return this.deleteName("user", id);
     }
     // TODO: Add find*()
-    // TODO: Add GetOpts
-    async getUser(id) {
-        return this.getName("user", id);
+    async getUser(id, opts) {
+        return this.getName("user", id, opts);
     }
     async listUser(opts) {
         return this.listName("user", opts);
