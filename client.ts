@@ -1,88 +1,82 @@
 // Solø API client
 
-export interface DebugInfo {
-	server?: ServerInfo | null;
-	ip?:     IPInfo | null;
-	http?:   HTTPInfo | null;
-	tls?:    TLSInfo | null;
+export interface TaskRequest {
+	userID?:   string;
+	name?:     string;
+	complete?: boolean;
+	after?:    string;
+}
+
+export interface TaskResponse extends MetadataResponse {
+	userID?:   string;
+	name?:     string;
+	complete?: boolean;
+	after?:    string;
+}
+
+export interface TokenRequest {
+	userID?: string;
+	token?:  string;
+}
+
+export interface TokenResponse extends MetadataResponse {
+	userID?: string;
+	token?:  string;
+}
+
+export interface UserRequest {
+	name?:         string;
+	email?:        string;
+	password?:     string;
+	serviceAdmin?: boolean;
+}
+
+export interface UserResponse extends MetadataResponse {
+	name?:         string;
+	email?:        string;
+	password?:     string;
+	serviceAdmin?: boolean;
+}
+
+export interface MetadataResponse {
+	id:           string;
+	etag:         string;
+	generation:   number;
+}
+
+export interface GetOpts<T extends MetadataResponse> {
+	prev?: T;
+}
+
+export interface ListOpts<T extends MetadataResponse> {
+	stream?:  string;
+	limit?:   number;
+	offset?:  number;
+	after?:   string;
+	sorts?:   string[];
+	filters?: Filter[];
+	prev?:    T[];
+}
+
+export interface Filter {
+	path:   string;
+	op:     string;
+	value:  string;
+}
+
+export interface UpdateOpts<T extends MetadataResponse> {
+	prev?: T;
 }
 
 export interface JSONError {
 	messages:  string[];
 }
 
-export interface GetOpts {
-	prev?: any | null;
-}
-
-export interface ListOpts {
-	stream?:  string | null;
-	limit?:   number | null;
-	offset?:  number | null;
-	after?:   string | null;
-	sorts?:   string[] | null;
-	filters?: Filter[] | null;
-	prev?:    any | null;
-}
-
-export interface UpdateOpts {
-	prev?: any | null;
-}
-
-export interface Task {
-	id?:         string | null;
-	etag?:       string | null;
-	generation?: number | null;
-	userID?:     string | null;
-	name?:       string | null;
-	complete?:   boolean | null;
-	after?:      string | null;
-}
-
-export interface TaskResponse {
-	id:          string;
-	etag:        string;
-	generation:  number;
-	userID?:     string | null;
-	name?:       string | null;
-	complete?:   boolean | null;
-	after?:      string | null;
-}
-
-export interface Token {
-	id?:         string | null;
-	etag?:       string | null;
-	generation?: number | null;
-	userID?:     string | null;
-	token?:      string | null;
-}
-
-export interface TokenResponse {
-	id:          string;
-	etag:        string;
-	generation:  number;
-	userID?:     string | null;
-	token?:      string | null;
-}
-
-export interface User {
-	id?:           string | null;
-	etag?:         string | null;
-	generation?:   number | null;
-	name?:         string | null;
-	email?:        string | null;
-	password?:     string | null;
-	serviceAdmin?: boolean | null;
-}
-
-export interface UserResponse {
-	id:            string;
-	etag:          string;
-	generation:    number;
-	name?:         string | null;
-	email?:        string | null;
-	password?:     string | null;
-	serviceAdmin?: boolean | null;
+export interface DebugInfo {
+	server: ServerInfo;
+	ip:     IPInfo;
+	http:   HTTPInfo;
+	tls:    TLSInfo;
 }
 
 export interface ServerInfo {
@@ -108,26 +102,288 @@ export interface TLSInfo {
 	serverName:          string;
 }
 
-export interface Filter {
-	path:   string;
-	op:     string;
-	value:  string;
+interface FetchOptions {
+	params?:  URLSearchParams;
+	headers?: Headers;
+	prev?:    any;
+	body?:    any;
+	signal?:  AbortSignal;
+	stream?:  boolean;
 }
 
-export interface ObjectCore {
-	id:           string;
-	etag:         string;
-	generation:   number;
+interface StreamEvent {
+	eventType: string;
+	params:    Map<string, string>;
+	data:      string;
+}
+
+const ETagKey = Symbol('etag');
+
+class StreamCore {
+	private reader: ReadableStreamDefaultReader;
+	private controller: AbortController;
+
+	private buf: string = '';
+
+	constructor(resp: Response, controller: AbortController) {
+		this.reader = resp.body!.pipeThrough(new TextDecoderStream()).getReader();
+		this.controller = controller;
+	}
+
+	async abort() {
+		this.controller.abort();
+	}
+
+	protected async readEvent(): Promise<StreamEvent | null> {
+		const data: string[] = [];
+		const ev: StreamEvent = {
+			eventType: '',
+			params: new Map(),
+			data: '',
+		};
+
+		while (true) {
+			const line = await this.readLine();
+
+			if (line == null) {
+				return null;
+
+			} else if (line.startsWith(':')) {
+				continue;
+
+			} else if (line.startsWith('event: ')) {
+				ev.eventType = this.removePrefix(line, 'event: ');
+
+			} else if (line.startsWith('data: ')) {
+				data.push(this.removePrefix(line, 'data: '));
+
+			} else if (line.includes(': ')) {
+				const [k, v] = line.split(': ', 2);
+				ev.params.set(k!, v!);
+
+			} else if (line == '') {
+				ev.data = data.join('\n');
+				return ev;
+			}
+		}
+	}
+
+	private async readLine(): Promise<string | null> {
+		while (true) {
+			const lineEnd = this.buf.indexOf('\n');
+
+			if (lineEnd == -1) {
+				let chunk: ReadableStreamReadResult<any>;
+
+				try {
+					chunk = await this.reader.read();
+				} catch {
+					return null;
+				}
+
+				if (chunk.done) {
+					return null;
+				}
+
+				this.buf += chunk.value;
+				continue;
+			}
+
+			const line = this.buf.substring(0, lineEnd);
+			this.buf = this.buf.substring(lineEnd + 1);
+
+			return line;
+		}
+	}
+
+	private removePrefix(s: string, prefix: string): string {
+		return s.substring(prefix.length);
+	}
+}
+
+export class GetStream<T extends MetadataResponse> extends StreamCore {
+	private prev: T | null;
+
+	constructor(resp: Response, controller: AbortController, prev: T | null | undefined) {
+		super(resp, controller);
+
+		this.prev = prev ?? null;
+	}
+
+	async read(): Promise<T | null> {
+		while (true) {
+			const ev = await this.readEvent();
+
+			if (ev == null) {
+				return null;
+
+			} else if (ev.eventType == 'initial' || ev.eventType == 'update') {
+				return JSON.parse(ev.data);
+
+			} else if (ev.eventType == 'notModified') {
+				if (this.prev == null) {
+					throw new Error({
+						messages: [
+							'notModified without previous',
+						],
+					});
+				}
+
+				const prev = this.prev;
+				this.prev = null;
+
+				return prev;
+
+			} else if (ev.eventType == 'heartbeat') {
+				continue;
+
+			}
+		}
+	}
+
+	async close() {
+		this.abort();
+
+		for await (const _ of this) {}
+	}
+
+	async *[Symbol.asyncIterator](): AsyncIterableIterator<T> {
+		while (true) {
+			const obj = await this.read();
+
+			if (obj == null) {
+				return;
+			}
+
+			yield obj;
+		}
+	}
+}
+
+export abstract class ListStream<T extends MetadataResponse> extends StreamCore {
+	constructor(resp: Response, controller: AbortController) {
+		super(resp, controller);
+	}
+
+	async close() {
+		this.abort();
+
+		for await (const _ of this) {}
+	}
+
+	abstract read(): Promise<T[] | null>;
+
+	async *[Symbol.asyncIterator](): AsyncIterableIterator<T[]> {
+		while (true) {
+			const list = await this.read();
+
+			if (list == null) {
+				return;
+			}
+
+			yield list;
+		}
+	}
+}
+
+export class ListStreamFull<T extends MetadataResponse> extends ListStream<T> {
+	private prev: T[] | null;
+
+	constructor(resp: Response, controller: AbortController, prev: T[] | null | undefined) {
+		super(resp, controller);
+		this.prev = prev ?? null;
+	}
+
+	async read(): Promise<T[] | null> {
+		while (true) {
+			const ev = await this.readEvent();
+
+			if (ev == null) {
+				return null;
+
+			} else if (ev.eventType == 'list') {
+				return JSON.parse(ev.data);
+
+			} else if (ev.eventType == 'notModified') {
+				if (this.prev == null) {
+					throw new Error({
+						messages: [
+							'notModified without previous',
+						],
+					});
+				}
+
+				const prev = this.prev;
+				this.prev = null;
+
+				return prev;
+
+			} else if (ev.eventType == 'heartbeat') {
+				continue;
+
+			}
+		}
+	}
+}
+
+export class ListStreamDiff<T extends MetadataResponse> extends ListStream<T> {
+	private prev: T[] | null;
+	private objs: T[] = [];
+
+	constructor(resp: Response, controller: AbortController, prev: T[] | null | undefined) {
+		super(resp, controller);
+		this.prev = prev ?? null;
+	}
+
+	async read(): Promise<T[] | null> {
+		while (true) {
+			const ev = await this.readEvent();
+
+			if (ev == null) {
+				return null;
+
+			} else if (ev.eventType == 'add') {
+				const obj = JSON.parse(ev.data) as T;
+				this.objs.splice(parseInt(ev.params.get('new-position')!, 10), 0, obj);
+
+			} else if (ev.eventType == 'update') {
+				this.objs.splice(parseInt(ev.params.get('old-position')!, 10), 1);
+
+				const obj = JSON.parse(ev.data) as T;
+				this.objs.splice(parseInt(ev.params.get('new-position')!, 10), 0, obj);
+
+			} else if (ev.eventType == 'remove') {
+				this.objs.splice(parseInt(ev.params.get('old-position')!, 10), 1);
+
+			} else if (ev.eventType == 'sync') {
+				return this.objs;
+
+			} else if (ev.eventType == 'notModified') {
+				if (!this.prev) {
+					throw new Error({
+						messages: [
+							"notModified without prev",
+						],
+					});
+				}
+
+				this.objs = this.prev;
+				return this.objs;
+
+			} else if (ev.eventType == 'heartbeat') {
+				continue;
+
+			}
+		}
+	}
 }
 
 class ClientCore {
 	protected baseURL: URL;
 	protected headers: Headers = new Headers();
 
-	private static etag = Symbol('etag');
-
 	constructor(baseURL: string) {
-		this.baseURL = new URL(baseURL);
+		this.baseURL = new URL(baseURL, globalThis?.location?.href);
 	}
 
 	async debugInfo(): Promise<DebugInfo> {
@@ -136,39 +392,147 @@ class ClientCore {
 
 	//// Generic
 
-	async createName<T1, T2>(name: string, obj: T1): Promise<T2> {
-		return this.fetch('POST', encodeURIComponent(name), null, null, null, obj);
+	async createName<TOut extends MetadataResponse, TIn>(name: string, obj: TIn): Promise<TOut> {
+		return this.fetch(
+			'POST',
+			encodeURIComponent(name),
+			{
+				body: obj,
+			},
+		);
 	}
 
-	// TODO: Add UpdateOpts
-	async deleteName(name: string, id: string): Promise<void> {
-		return this.fetch('DELETE', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
+	async deleteName<TOut extends MetadataResponse>(name: string, id: string, opts?: UpdateOpts<TOut> | null): Promise<void> {
+		return this.fetch(
+			'DELETE',
+			`${encodeURIComponent(name)}/${encodeURIComponent(id)}`,
+			{
+				headers: this.buildUpdateHeaders(opts),
+			},
+		);
 	}
 
-	// TODO: Add findName()
+	async findName<TOut extends MetadataResponse>(name: string, shortID: string): Promise<TOut> {
+		const opts: ListOpts<TOut> = {
+			filters: [
+				{
+					path: 'id',
+					op: 'hp',
+					value: shortID,
+				},
+			],
+		};
 
-	async getName<T>(name: string, id: string, opts?: GetOpts | null): Promise<T> {
-		return this.fetch('GET', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`, null, this.buildGetHeaders(opts), opts?.prev);
+		const list = await this.listName<TOut>(name, opts);
+
+		if (list.length != 1) {
+			throw new Error({
+				messages: [
+					'not found',
+				],
+			});
+		}
+
+		return list[0]!;
 	}
 
-	async listName<T>(name: string, opts?: ListOpts | null): Promise<T[]> {
-		return this.fetch('GET', `${encodeURIComponent(name)}`, this.buildListParams(opts), this.buildListHeaders(opts), opts?.prev);
+	async getName<TOut extends MetadataResponse>(name: string, id: string, opts?: GetOpts<TOut> | null): Promise<TOut> {
+		return this.fetch(
+			'GET',
+			`${encodeURIComponent(name)}/${encodeURIComponent(id)}`,
+			{
+				headers: this.buildGetHeaders(opts),
+				prev: opts?.prev,
+			},
+		);
 	}
 
-	// TODO: Add UpdateOpts
-	async replaceName<T1, T2>(name: string, id: string, obj: T1): Promise<T2> {
-		return this.fetch('PUT', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`, null, null, null, obj);
+	async listName<TOut extends MetadataResponse>(name: string, opts?: ListOpts<TOut> | null): Promise<TOut[]> {
+		return this.fetch(
+			'GET',
+			`${encodeURIComponent(name)}`,
+			{
+				params: this.buildListParams(opts),
+				headers: this.buildListHeaders(opts),
+				prev: opts?.prev,
+			},
+		);
 	}
 
-	// TODO: Add UpdateOpts
-	async updateName<T1, T2>(name: string, id: string, obj: T1): Promise<T2> {
-		return this.fetch('PATCH', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`, null, null, null, obj);
+	async replaceName<TOut extends MetadataResponse, TIn>(name: string, id: string, obj: TIn, opts?: UpdateOpts<TOut> | null): Promise<TOut> {
+		return this.fetch(
+			'PUT',
+			`${encodeURIComponent(name)}/${encodeURIComponent(id)}`,
+			{
+				headers: this.buildUpdateHeaders(opts),
+				body: obj,
+			},
+		);
 	}
 
-	// TODO: Add streamGetName
-	// TODO: Add streamListName
+	async updateName<TOut extends MetadataResponse, TIn>(name: string, id: string, obj: TIn, opts?: UpdateOpts<TOut> | null): Promise<TOut> {
+		return this.fetch(
+			'PATCH',
+			`${encodeURIComponent(name)}/${encodeURIComponent(id)}`,
+			{
+				headers: this.buildUpdateHeaders(opts),
+				body: obj,
+			},
+		);
+	}
 
-	private buildListParams(opts: ListOpts | null | undefined): URLSearchParams {
+	async streamGetName<TOut extends MetadataResponse>(name: string, id: string, opts?: GetOpts<TOut> | null): Promise<GetStream<TOut>> {
+		const controller = new AbortController();
+
+		const resp = await this.fetch(
+			'GET',
+			`${encodeURIComponent(name)}/${encodeURIComponent(id)}`,
+			{
+				headers: this.buildGetHeaders(opts),
+				stream: true,
+				signal: controller.signal,
+			},
+		);
+
+		return new GetStream<TOut>(resp, controller, opts?.prev);
+	}
+
+	async streamListName<TOut extends MetadataResponse>(name: string, opts?: ListOpts<TOut> | null): Promise<ListStream<TOut>> {
+		const controller = new AbortController();
+
+		const resp = await this.fetch(
+			'GET',
+			`${encodeURIComponent(name)}`,
+			{
+				params: this.buildListParams(opts),
+				headers: this.buildListHeaders(opts),
+				stream: true,
+				signal: controller.signal,
+			},
+		);
+
+		try {
+			switch (resp.headers.get('Stream-Format')) {
+			case 'full':
+				return new ListStreamFull<TOut>(resp, controller, opts?.prev);
+
+			case 'diff':
+				return new ListStreamDiff<TOut>(resp, controller, opts?.prev);
+
+			default:
+				throw new Error({
+					messages: [
+						`invalid Stream-Format: ${resp.headers.get('Stream-Format')}`,
+					],
+				});
+			}
+		} catch (e) {
+			controller.abort();
+			throw e;
+		}
+	}
+
+	private buildListParams<T extends MetadataResponse>(opts: ListOpts<T> | null | undefined): URLSearchParams {
 		const params = new URLSearchParams();
 
 		if (!opts) {
@@ -202,68 +566,90 @@ class ClientCore {
 		return params;
 	}
 
-	private buildListHeaders(opts: ListOpts | null | undefined): Headers {
+	private buildListHeaders<T extends MetadataResponse>(opts: ListOpts<T> | null | undefined): Headers {
 		const headers = new Headers();
 
-		if (!opts) {
-			return headers;
-		}
-
-		if (opts.prev) {
-			const etag = Object.getOwnPropertyDescriptor(opts.prev, ClientCore.etag)!.value;
-			headers.set('If-None-Match', etag);
-		}
+		this.addETagHeader(headers, 'If-None-Match', opts?.prev);
 
 		return headers;
 	}
 
-	private buildGetHeaders(opts: GetOpts | null | undefined): Headers {
+	private buildGetHeaders<T extends MetadataResponse>(opts: GetOpts<T> | null | undefined): Headers {
 		const headers = new Headers();
 
-		if (!opts) {
-			return headers;
-		}
-
-		if (opts.prev) {
-			headers.set('If-None-Match', `"${(<ObjectCore>opts.prev).etag}"`);
-		}
+		this.addETagHeader(headers, 'If-None-Match', opts?.prev);
 
 		return headers;
 	}
 
-	protected async fetch(method: string, path: string, params?: URLSearchParams | null, headers?: Headers | null, prev?: any | null, body?: any): Promise<any> {
+	private buildUpdateHeaders<T extends MetadataResponse>(opts: UpdateOpts<T> | null | undefined): Headers {
+		const headers = new Headers();
+
+		this.addETagHeader(headers, 'If-Match', opts?.prev);
+
+		return headers;
+	}
+
+	private addETagHeader(headers: Headers, name: string, obj: any | undefined) {
+		if (!obj) {
+			return;
+		}
+
+		const etag = Object.getOwnPropertyDescriptor(obj, ETagKey)?.value;
+
+		if (!etag) {
+			throw(new Error({
+				messages: [
+					`missing ETagKey in ${obj}`,
+				],
+			}));
+		}
+
+		headers.set(name, etag);
+	}
+
+	protected async fetch(method: string, path: string, opts?: FetchOptions): Promise<any> {
 		const url = new URL(path, this.baseURL);
 
-		if (params) {
-			url.search = `?${params.toString()}`;
+		if (opts?.params) {
+			url.search = `?${opts.params}`;
 		}
 
-		const opts: RequestInit = {
+		// TODO: Add timeout
+		// TODO: Add retry strategy
+		// TODO: Add Idempotency-Key support
+
+		const reqOpts: RequestInit = {
 			method: method,
 			headers: new Headers(this.headers),
 			mode: 'cors',
 			credentials: 'omit',
 			referrerPolicy: 'no-referrer',
 			keepalive: true,
+			signal: opts?.signal ?? null,
 		}
 
-		if (headers) {
-			for (const [k, v] of headers) {
-				(<Headers>opts.headers).append(k, v);
+		if (opts?.headers) {
+			for (const [k, v] of opts.headers) {
+				(<Headers>reqOpts.headers).append(k, v);
 			}
 		}
 
-		if (body) {
-			opts.body = JSON.stringify(body);
-			(<Headers>opts.headers).set('Content-Type', 'application/json');
+		if (opts?.body) {
+			reqOpts.body = JSON.stringify(opts.body);
+			(<Headers>reqOpts.headers).set('Content-Type', 'application/json');
 		}
 
-		const req = new Request(url, opts);
+		if (opts?.stream) {
+			(<Headers>reqOpts.headers).set('Accept', 'text/event-stream');
+		}
+
+		const req = new Request(url, reqOpts);
 
 		const resp = await fetch(req);
 
-		if (prev && resp.status == 304) {
-			return prev;
+		if (opts?.prev && resp.status == 304) {
+			return opts.prev;
 		}
 
 		if (!resp.ok) {
@@ -271,10 +657,14 @@ class ClientCore {
 		}
 
 		if (resp.status == 200) {
+			if (opts?.stream) {
+				return resp;
+			}
+
 			const js = await resp.json();
 
-			if (Array.isArray(js)) {
-				Object.defineProperty(js, ClientCore.etag, {
+			if (resp.headers.has('ETag')) {
+				Object.defineProperty(js, ETagKey, {
 					value: resp.headers.get('ETag'),
 				});
 			}
@@ -300,105 +690,117 @@ export class Client extends ClientCore {
 
 	//// Task
 
-	async createTask(obj: Task): Promise<TaskResponse> {
-		return this.createName("task", obj);
+	async createTask(obj: TaskRequest): Promise<TaskResponse> {
+		return this.createName<TaskResponse, TaskRequest>('task', obj);
 	}
 
-	// TODO: Add UpdateOpts
-	async deleteTask(id: string): Promise<void> {
-		return this.deleteName("task", id);
+	async deleteTask(id: string, opts?: UpdateOpts<TaskResponse> | null): Promise<void> {
+		return this.deleteName('task', id, opts);
 	}
 
-	// TODO: Add find*()
-
-	async getTask(id: string, opts?: GetOpts | null): Promise<TaskResponse> {
-		return this.getName("task", id, opts);
+	async findTask(shortID: string): Promise<TaskResponse> {
+		return this.findName<TaskResponse>('task', shortID);
 	}
 
-	async listTask(opts?: ListOpts | null): Promise<TaskResponse[]> {
-		return this.listName("task", opts);
+	async getTask(id: string, opts?: GetOpts<TaskResponse> | null): Promise<TaskResponse> {
+		return this.getName<TaskResponse>('task', id, opts);
 	}
 
-	// TODO: Add UpdateOpts
-	async replaceTask(id: string, obj: Task): Promise<TaskResponse> {
-		return this.replaceName("task", id, obj);
+	async listTask(opts?: ListOpts<TaskResponse> | null): Promise<TaskResponse[]> {
+		return this.listName<TaskResponse>('task', opts);
 	}
 
-	// TODO: Add UpdateOpts
-	async updateTask(id: string, obj: Task): Promise<TaskResponse> {
-		return this.updateName("task", id, obj);
+	async replaceTask(id: string, obj: TaskRequest, opts?: UpdateOpts<TaskResponse> | null): Promise<TaskResponse> {
+		return this.replaceName<TaskResponse, TaskRequest>('task', id, obj, opts);
 	}
 
-	// TODO: Add streamGet
-	// TODO: Add streamList
+	async updateTask(id: string, obj: TaskRequest, opts?: UpdateOpts<TaskResponse> | null): Promise<TaskResponse> {
+		return this.updateName<TaskResponse, TaskRequest>('task', id, obj, opts);
+	}
+
+	async streamGetTask(id: string, opts?: GetOpts<TaskResponse> | null): Promise<GetStream<TaskResponse>> {
+		return this.streamGetName<TaskResponse>('task', id, opts);
+	}
+
+	async streamListTask(opts?: ListOpts<TaskResponse> | null): Promise<ListStream<TaskResponse>> {
+		return this.streamListName<TaskResponse>('task', opts);
+	}
 
 	//// Token
 
-	async createToken(obj: Token): Promise<TokenResponse> {
-		return this.createName("token", obj);
+	async createToken(obj: TokenRequest): Promise<TokenResponse> {
+		return this.createName<TokenResponse, TokenRequest>('token', obj);
 	}
 
-	// TODO: Add UpdateOpts
-	async deleteToken(id: string): Promise<void> {
-		return this.deleteName("token", id);
+	async deleteToken(id: string, opts?: UpdateOpts<TokenResponse> | null): Promise<void> {
+		return this.deleteName('token', id, opts);
 	}
 
-	// TODO: Add find*()
-
-	async getToken(id: string, opts?: GetOpts | null): Promise<TokenResponse> {
-		return this.getName("token", id, opts);
+	async findToken(shortID: string): Promise<TokenResponse> {
+		return this.findName<TokenResponse>('token', shortID);
 	}
 
-	async listToken(opts?: ListOpts | null): Promise<TokenResponse[]> {
-		return this.listName("token", opts);
+	async getToken(id: string, opts?: GetOpts<TokenResponse> | null): Promise<TokenResponse> {
+		return this.getName<TokenResponse>('token', id, opts);
 	}
 
-	// TODO: Add UpdateOpts
-	async replaceToken(id: string, obj: Token): Promise<TokenResponse> {
-		return this.replaceName("token", id, obj);
+	async listToken(opts?: ListOpts<TokenResponse> | null): Promise<TokenResponse[]> {
+		return this.listName<TokenResponse>('token', opts);
 	}
 
-	// TODO: Add UpdateOpts
-	async updateToken(id: string, obj: Token): Promise<TokenResponse> {
-		return this.updateName("token", id, obj);
+	async replaceToken(id: string, obj: TokenRequest, opts?: UpdateOpts<TokenResponse> | null): Promise<TokenResponse> {
+		return this.replaceName<TokenResponse, TokenRequest>('token', id, obj, opts);
 	}
 
-	// TODO: Add streamGet
-	// TODO: Add streamList
+	async updateToken(id: string, obj: TokenRequest, opts?: UpdateOpts<TokenResponse> | null): Promise<TokenResponse> {
+		return this.updateName<TokenResponse, TokenRequest>('token', id, obj, opts);
+	}
+
+	async streamGetToken(id: string, opts?: GetOpts<TokenResponse> | null): Promise<GetStream<TokenResponse>> {
+		return this.streamGetName<TokenResponse>('token', id, opts);
+	}
+
+	async streamListToken(opts?: ListOpts<TokenResponse> | null): Promise<ListStream<TokenResponse>> {
+		return this.streamListName<TokenResponse>('token', opts);
+	}
 
 	//// User
 
-	async createUser(obj: User): Promise<UserResponse> {
-		return this.createName("user", obj);
+	async createUser(obj: UserRequest): Promise<UserResponse> {
+		return this.createName<UserResponse, UserRequest>('user', obj);
 	}
 
-	// TODO: Add UpdateOpts
-	async deleteUser(id: string): Promise<void> {
-		return this.deleteName("user", id);
+	async deleteUser(id: string, opts?: UpdateOpts<UserResponse> | null): Promise<void> {
+		return this.deleteName('user', id, opts);
 	}
 
-	// TODO: Add find*()
-
-	async getUser(id: string, opts?: GetOpts | null): Promise<UserResponse> {
-		return this.getName("user", id, opts);
+	async findUser(shortID: string): Promise<UserResponse> {
+		return this.findName<UserResponse>('user', shortID);
 	}
 
-	async listUser(opts?: ListOpts | null): Promise<UserResponse[]> {
-		return this.listName("user", opts);
+	async getUser(id: string, opts?: GetOpts<UserResponse> | null): Promise<UserResponse> {
+		return this.getName<UserResponse>('user', id, opts);
 	}
 
-	// TODO: Add UpdateOpts
-	async replaceUser(id: string, obj: User): Promise<UserResponse> {
-		return this.replaceName("user", id, obj);
+	async listUser(opts?: ListOpts<UserResponse> | null): Promise<UserResponse[]> {
+		return this.listName<UserResponse>('user', opts);
 	}
 
-	// TODO: Add UpdateOpts
-	async updateUser(id: string, obj: User): Promise<UserResponse> {
-		return this.updateName("user", id, obj);
+	async replaceUser(id: string, obj: UserRequest, opts?: UpdateOpts<UserResponse> | null): Promise<UserResponse> {
+		return this.replaceName<UserResponse, UserRequest>('user', id, obj, opts);
 	}
 
-	// TODO: Add streamGet
-	// TODO: Add streamList
+	async updateUser(id: string, obj: UserRequest, opts?: UpdateOpts<UserResponse> | null): Promise<UserResponse> {
+		return this.updateName<UserResponse, UserRequest>('user', id, obj, opts);
+	}
+
+	async streamGetUser(id: string, opts?: GetOpts<UserResponse> | null): Promise<GetStream<UserResponse>> {
+		return this.streamGetName<UserResponse>('user', id, opts);
+	}
+
+	async streamListUser(opts?: ListOpts<UserResponse> | null): Promise<ListStream<UserResponse>> {
+		return this.streamListName<UserResponse>('user', opts);
+	}
 }
 
 export class Error {
@@ -412,3 +814,5 @@ export class Error {
 		return this.messages[0] ?? 'error';
 	}
 }
+
+// vim: set filetype=typescript:
