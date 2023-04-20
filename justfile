@@ -6,7 +6,7 @@ build:
 	tsc
 
 todo:
-	-git grep -e TODO --and --not -e ignoretodo
+	-git grep -e TODO --and --not -e ignoretodo | grep -v client.js.map
 
 update-client: && default
 	curl --silent --output client.ts 'https://api.solø.com/v1/_client.ts'
