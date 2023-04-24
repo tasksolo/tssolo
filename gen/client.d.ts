@@ -1,187 +1,142 @@
-export interface TaskRequest {
+export interface Task {
     userID?: string;
     name?: string;
     complete?: boolean;
     after?: string;
 }
-export interface TaskResponse extends MetadataResponse {
-    userID?: string;
-    name?: string;
-    complete?: boolean;
-    after?: string;
-}
-export interface TokenRequest {
+export interface Token {
     userID?: string;
     token?: string;
 }
-export interface TokenResponse extends MetadataResponse {
-    userID?: string;
-    token?: string;
-}
-export interface UserRequest {
+export interface User {
     name?: string;
     email?: string;
     password?: string;
     serviceAdmin?: boolean;
 }
-export interface UserResponse extends MetadataResponse {
-    name?: string;
-    email?: string;
-    password?: string;
-    serviceAdmin?: boolean;
-}
-export interface MetadataResponse {
+export interface Metadata {
     id: string;
     etag: string;
     generation: number;
 }
-export interface GetOpts<T extends MetadataResponse> {
-    prev?: T;
+export interface GetOpts<T> {
+    prev?: T & Metadata;
 }
-export interface ListOpts<T extends MetadataResponse> {
+export interface ListOpts<T> {
     stream?: string;
     limit?: number;
     offset?: number;
     after?: string;
     sorts?: string[];
     filters?: Filter[];
-    prev?: T[];
+    prev?: (T & Metadata)[];
 }
 export interface Filter {
     path: string;
     op: string;
     value: string;
 }
-export interface UpdateOpts<T extends MetadataResponse> {
-    prev?: T;
+export interface UpdateOpts<T> {
+    prev?: T & Metadata;
 }
 export interface JSONError {
     messages: string[];
 }
-export interface DebugInfo {
-    server: ServerInfo;
-    ip: IPInfo;
-    http: HTTPInfo;
-    tls: TLSInfo;
+export declare class Client {
+    private baseURL;
+    private headers;
+    constructor(baseURL: string);
+    setHeader(name: string, value: string): void;
+    resetAuth(): void;
+    setBasicAuth(user: string, pass: string): void;
+    setAuthToken(token: string): void;
+    debugInfo(): Promise<Object>;
+    openAPI(): Promise<Object>;
+    goClient(): Promise<string>;
+    tsClient(): Promise<string>;
+    createTask(obj: Task): Promise<Task & Metadata>;
+    deleteTask(id: string, opts?: UpdateOpts<Task> | null): Promise<void>;
+    findTask(shortID: string): Promise<Task & Metadata>;
+    getTask(id: string, opts?: GetOpts<Task> | null): Promise<Task & Metadata>;
+    listTask(opts?: ListOpts<Task> | null): Promise<(Task & Metadata)[]>;
+    replaceTask(id: string, obj: Task, opts?: UpdateOpts<Task> | null): Promise<Task & Metadata>;
+    updateTask(id: string, obj: Task, opts?: UpdateOpts<Task> | null): Promise<Task & Metadata>;
+    streamGetTask(id: string, opts?: GetOpts<Task> | null): Promise<GetStream<Task>>;
+    streamListTask(opts?: ListOpts<Task> | null): Promise<ListStream<Task>>;
+    createToken(obj: Token): Promise<Token & Metadata>;
+    deleteToken(id: string, opts?: UpdateOpts<Token> | null): Promise<void>;
+    findToken(shortID: string): Promise<Token & Metadata>;
+    getToken(id: string, opts?: GetOpts<Token> | null): Promise<Token & Metadata>;
+    listToken(opts?: ListOpts<Token> | null): Promise<(Token & Metadata)[]>;
+    replaceToken(id: string, obj: Token, opts?: UpdateOpts<Token> | null): Promise<Token & Metadata>;
+    updateToken(id: string, obj: Token, opts?: UpdateOpts<Token> | null): Promise<Token & Metadata>;
+    streamGetToken(id: string, opts?: GetOpts<Token> | null): Promise<GetStream<Token>>;
+    streamListToken(opts?: ListOpts<Token> | null): Promise<ListStream<Token>>;
+    createUser(obj: User): Promise<User & Metadata>;
+    deleteUser(id: string, opts?: UpdateOpts<User> | null): Promise<void>;
+    findUser(shortID: string): Promise<User & Metadata>;
+    getUser(id: string, opts?: GetOpts<User> | null): Promise<User & Metadata>;
+    listUser(opts?: ListOpts<User> | null): Promise<(User & Metadata)[]>;
+    replaceUser(id: string, obj: User, opts?: UpdateOpts<User> | null): Promise<User & Metadata>;
+    updateUser(id: string, obj: User, opts?: UpdateOpts<User> | null): Promise<User & Metadata>;
+    streamGetUser(id: string, opts?: GetOpts<User> | null): Promise<GetStream<User>>;
+    streamListUser(opts?: ListOpts<User> | null): Promise<ListStream<User>>;
+    createName<T>(name: string, obj: T): Promise<T & Metadata>;
+    deleteName<T>(name: string, id: string, opts?: UpdateOpts<T> | null): Promise<void>;
+    findName<T>(name: string, shortID: string): Promise<T & Metadata>;
+    getName<T>(name: string, id: string, opts?: GetOpts<T> | null): Promise<T & Metadata>;
+    listName<T>(name: string, opts?: ListOpts<T> | null): Promise<(T & Metadata)[]>;
+    replaceName<T>(name: string, id: string, obj: T, opts?: UpdateOpts<T> | null): Promise<T & Metadata>;
+    updateName<T>(name: string, id: string, obj: T, opts?: UpdateOpts<T> | null): Promise<T & Metadata>;
+    streamGetName<T>(name: string, id: string, opts?: GetOpts<T> | null): Promise<GetStream<T>>;
+    streamListName<T>(name: string, opts?: ListOpts<T> | null): Promise<ListStream<T>>;
+    private newReq;
 }
-export interface ServerInfo {
-    hostname: string;
-}
-export interface IPInfo {
-    remoteAddr: string;
-}
-export interface HTTPInfo {
-    protocol: string;
-    method: string;
-    header: string;
-    url: string;
-}
-export interface TLSInfo {
-    version: number;
-    didResume: boolean;
-    cipherSuite: number;
-    negotiatedProtocol: string;
-    serverName: string;
-}
-interface FetchOptions {
-    params?: URLSearchParams;
-    headers?: Headers;
-    prev?: any;
-    body?: any;
-    signal?: AbortSignal;
-    stream?: boolean;
-}
-interface StreamEvent {
+declare class StreamEvent<T> {
     eventType: string;
     params: Map<string, string>;
     data: string;
+    decodeObj(): T & Metadata;
+    decodeList(): (T & Metadata)[];
 }
-declare class StreamCore {
-    private reader;
+declare class EventStream<T> {
+    private scan;
+    constructor(stream: ReadableStream);
+    readEvent(): Promise<StreamEvent<T> | null>;
+}
+export declare class GetStream<T> {
+    private eventStream;
     private controller;
-    private buf;
-    constructor(resp: Response, controller: AbortController);
+    private prev;
+    private lastEvent;
+    constructor(resp: Response, controller: AbortController, prev: (T & Metadata) | null | undefined);
+    lastEventReceived(): Date;
     abort(): Promise<void>;
-    protected readEvent(): Promise<StreamEvent | null>;
-    private readLine;
-    private removePrefix;
-}
-export declare class GetStream<T extends MetadataResponse> extends StreamCore {
-    private prev;
-    constructor(resp: Response, controller: AbortController, prev: T | null | undefined);
-    read(): Promise<T | null>;
+    read(): Promise<(T & Metadata) | null>;
     close(): Promise<void>;
-    [Symbol.asyncIterator](): AsyncIterableIterator<T>;
+    [Symbol.asyncIterator](): AsyncIterableIterator<T & Metadata>;
 }
-export declare abstract class ListStream<T extends MetadataResponse> extends StreamCore {
+export declare abstract class ListStream<T> {
+    protected eventStream: EventStream<T>;
+    private controller;
+    protected lastEvent: Date;
     constructor(resp: Response, controller: AbortController);
+    lastEventReceived(): Date;
+    abort(): Promise<void>;
     close(): Promise<void>;
-    abstract read(): Promise<T[] | null>;
-    [Symbol.asyncIterator](): AsyncIterableIterator<T[]>;
+    abstract read(): Promise<(T & Metadata)[] | null>;
+    [Symbol.asyncIterator](): AsyncIterableIterator<(T & Metadata)[]>;
 }
-export declare class ListStreamFull<T extends MetadataResponse> extends ListStream<T> {
+export declare class ListStreamFull<T> extends ListStream<T> {
     private prev;
-    constructor(resp: Response, controller: AbortController, prev: T[] | null | undefined);
-    read(): Promise<T[] | null>;
+    constructor(resp: Response, controller: AbortController, prev: (T & Metadata)[] | null | undefined);
+    read(): Promise<(T & Metadata)[] | null>;
 }
-export declare class ListStreamDiff<T extends MetadataResponse> extends ListStream<T> {
+export declare class ListStreamDiff<T> extends ListStream<T> {
     private prev;
     private objs;
-    constructor(resp: Response, controller: AbortController, prev: T[] | null | undefined);
-    read(): Promise<T[] | null>;
-}
-declare class ClientCore {
-    protected baseURL: URL;
-    protected headers: Headers;
-    constructor(baseURL: string);
-    debugInfo(): Promise<DebugInfo>;
-    createName<TOut extends MetadataResponse, TIn>(name: string, obj: TIn): Promise<TOut>;
-    deleteName<TOut extends MetadataResponse>(name: string, id: string, opts?: UpdateOpts<TOut> | null): Promise<void>;
-    findName<TOut extends MetadataResponse>(name: string, shortID: string): Promise<TOut>;
-    getName<TOut extends MetadataResponse>(name: string, id: string, opts?: GetOpts<TOut> | null): Promise<TOut>;
-    listName<TOut extends MetadataResponse>(name: string, opts?: ListOpts<TOut> | null): Promise<TOut[]>;
-    replaceName<TOut extends MetadataResponse, TIn>(name: string, id: string, obj: TIn, opts?: UpdateOpts<TOut> | null): Promise<TOut>;
-    updateName<TOut extends MetadataResponse, TIn>(name: string, id: string, obj: TIn, opts?: UpdateOpts<TOut> | null): Promise<TOut>;
-    streamGetName<TOut extends MetadataResponse>(name: string, id: string, opts?: GetOpts<TOut> | null): Promise<GetStream<TOut>>;
-    streamListName<TOut extends MetadataResponse>(name: string, opts?: ListOpts<TOut> | null): Promise<ListStream<TOut>>;
-    private buildListParams;
-    private buildListHeaders;
-    private buildGetHeaders;
-    private buildUpdateHeaders;
-    private addETagHeader;
-    protected fetch(method: string, path: string, opts?: FetchOptions): Promise<any>;
-}
-export declare class Client extends ClientCore {
-    constructor(baseURL: string);
-    setBasicAuth(user: string, pass: string): void;
-    setAuthToken(token: string): void;
-    createTask(obj: TaskRequest): Promise<TaskResponse>;
-    deleteTask(id: string, opts?: UpdateOpts<TaskResponse> | null): Promise<void>;
-    findTask(shortID: string): Promise<TaskResponse>;
-    getTask(id: string, opts?: GetOpts<TaskResponse> | null): Promise<TaskResponse>;
-    listTask(opts?: ListOpts<TaskResponse> | null): Promise<TaskResponse[]>;
-    replaceTask(id: string, obj: TaskRequest, opts?: UpdateOpts<TaskResponse> | null): Promise<TaskResponse>;
-    updateTask(id: string, obj: TaskRequest, opts?: UpdateOpts<TaskResponse> | null): Promise<TaskResponse>;
-    streamGetTask(id: string, opts?: GetOpts<TaskResponse> | null): Promise<GetStream<TaskResponse>>;
-    streamListTask(opts?: ListOpts<TaskResponse> | null): Promise<ListStream<TaskResponse>>;
-    createToken(obj: TokenRequest): Promise<TokenResponse>;
-    deleteToken(id: string, opts?: UpdateOpts<TokenResponse> | null): Promise<void>;
-    findToken(shortID: string): Promise<TokenResponse>;
-    getToken(id: string, opts?: GetOpts<TokenResponse> | null): Promise<TokenResponse>;
-    listToken(opts?: ListOpts<TokenResponse> | null): Promise<TokenResponse[]>;
-    replaceToken(id: string, obj: TokenRequest, opts?: UpdateOpts<TokenResponse> | null): Promise<TokenResponse>;
-    updateToken(id: string, obj: TokenRequest, opts?: UpdateOpts<TokenResponse> | null): Promise<TokenResponse>;
-    streamGetToken(id: string, opts?: GetOpts<TokenResponse> | null): Promise<GetStream<TokenResponse>>;
-    streamListToken(opts?: ListOpts<TokenResponse> | null): Promise<ListStream<TokenResponse>>;
-    createUser(obj: UserRequest): Promise<UserResponse>;
-    deleteUser(id: string, opts?: UpdateOpts<UserResponse> | null): Promise<void>;
-    findUser(shortID: string): Promise<UserResponse>;
-    getUser(id: string, opts?: GetOpts<UserResponse> | null): Promise<UserResponse>;
-    listUser(opts?: ListOpts<UserResponse> | null): Promise<UserResponse[]>;
-    replaceUser(id: string, obj: UserRequest, opts?: UpdateOpts<UserResponse> | null): Promise<UserResponse>;
-    updateUser(id: string, obj: UserRequest, opts?: UpdateOpts<UserResponse> | null): Promise<UserResponse>;
-    streamGetUser(id: string, opts?: GetOpts<UserResponse> | null): Promise<GetStream<UserResponse>>;
-    streamListUser(opts?: ListOpts<UserResponse> | null): Promise<ListStream<UserResponse>>;
+    constructor(resp: Response, controller: AbortController, prev: (T & Metadata)[] | null | undefined);
+    read(): Promise<(T & Metadata)[] | null>;
 }
 export declare class Error {
     messages: string[];
