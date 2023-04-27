@@ -16,6 +16,7 @@ export interface User {
     name?: string;
     email?: string;
     password?: string;
+    shard?: string;
     serviceAdmin?: boolean;
     replicationClient?: boolean;
 }
