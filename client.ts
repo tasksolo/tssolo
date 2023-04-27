@@ -1,5 +1,10 @@
 // Solø API client
 
+export interface ShardServerConfig {
+	shardID?:    string;
+	instanceID?: string;
+}
+
 export interface Task {
 	userID?:   string;
 	name?:     string;
@@ -13,10 +18,11 @@ export interface Token {
 }
 
 export interface User {
-	name?:         string;
-	email?:        string;
-	password?:     string;
-	serviceAdmin?: boolean;
+	name?:              string;
+	email?:             string;
+	password?:          string;
+	serviceAdmin?:      boolean;
+	replicationClient?: boolean;
 }
 
 export interface Metadata {
@@ -100,6 +106,44 @@ export class Client {
 	async tsClient(): Promise<string> {
 		const req = this.newReq('GET', '_client.ts');
 		return req.fetchText();
+	}
+
+	//// ShardServerConfig
+
+	async createShardServerConfig(obj: ShardServerConfig): Promise<ShardServerConfig & Metadata> {
+		return this.createName<ShardServerConfig>('shardserverconfig', obj);
+	}
+
+	async deleteShardServerConfig(id: string, opts?: UpdateOpts<ShardServerConfig> | null): Promise<void> {
+		return this.deleteName('shardserverconfig', id, opts);
+	}
+
+	async findShardServerConfig(shortID: string): Promise<ShardServerConfig & Metadata> {
+		return this.findName<ShardServerConfig>('shardserverconfig', shortID);
+	}
+
+	async getShardServerConfig(id: string, opts?: GetOpts<ShardServerConfig> | null): Promise<ShardServerConfig & Metadata> {
+		return this.getName<ShardServerConfig>('shardserverconfig', id, opts);
+	}
+
+	async listShardServerConfig(opts?: ListOpts<ShardServerConfig> | null): Promise<(ShardServerConfig & Metadata)[]> {
+		return this.listName<ShardServerConfig>('shardserverconfig', opts);
+	}
+
+	async replaceShardServerConfig(id: string, obj: ShardServerConfig, opts?: UpdateOpts<ShardServerConfig> | null): Promise<ShardServerConfig & Metadata> {
+		return this.replaceName<ShardServerConfig>('shardserverconfig', id, obj, opts);
+	}
+
+	async updateShardServerConfig(id: string, obj: ShardServerConfig, opts?: UpdateOpts<ShardServerConfig> | null): Promise<ShardServerConfig & Metadata> {
+		return this.updateName<ShardServerConfig>('shardserverconfig', id, obj, opts);
+	}
+
+	async streamGetShardServerConfig(id: string, opts?: GetOpts<ShardServerConfig> | null): Promise<GetStream<ShardServerConfig>> {
+		return this.streamGetName<ShardServerConfig>('shardserverconfig', id, opts);
+	}
+
+	async streamListShardServerConfig(opts?: ListOpts<ShardServerConfig> | null): Promise<ListStream<ShardServerConfig>> {
+		return this.streamListName<ShardServerConfig>('shardserverconfig', opts);
 	}
 
 	//// Task
@@ -219,12 +263,16 @@ export class Client {
 	//// Generic
 
 	async createName<T>(name: string, obj: T): Promise<T & Metadata> {
+		// TODO: Set Idempotency-Key
+		// TODO: Split out createNameOnce, add retry loop
 		const req = this.newReq<T>('POST', encodeURIComponent(name));
 		req.setBody(obj);
 		return req.fetchObj();
 	}
 
 	async deleteName<T>(name: string, id: string, opts?: UpdateOpts<T> | null): Promise<void> {
+		// TODO: Set Idempotency-Key
+		// TODO: Split out deleteNameOnce, add retry loop
 		const req = this.newReq<T>('DELETE', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
 		req.applyUpdateOpts(opts);
 		return req.fetchVoid();
@@ -255,18 +303,22 @@ export class Client {
 	}
 
 	async getName<T>(name: string, id: string, opts?: GetOpts<T> | null): Promise<T & Metadata> {
+		// TODO: Split out getNameOnce, add retry loop
 		const req = this.newReq<T>('GET', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
 		req.applyGetOpts(opts);
 		return req.fetchObj();
 	}
 
 	async listName<T>(name: string, opts?: ListOpts<T> | null): Promise<(T & Metadata)[]> {
+		// TODO: Split out listNameOnce, add retry loop
 		const req = this.newReq<T>('GET', `${encodeURIComponent(name)}`);
 		req.applyListOpts(opts);
 		return req.fetchList();
 	}
 
 	async replaceName<T>(name: string, id: string, obj: T, opts?: UpdateOpts<T> | null): Promise<T & Metadata> {
+		// TODO: Set Idempotency-Key
+		// TODO: Split out replaceNameOnce, add retry loop
 		const req = this.newReq<T>('PUT', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
 		req.applyUpdateOpts(opts);
 		req.setBody(obj);
@@ -274,6 +326,8 @@ export class Client {
 	}
 
 	async updateName<T>(name: string, id: string, obj: T, opts?: UpdateOpts<T> | null): Promise<T & Metadata> {
+		// TODO: Set Idempotency-Key
+		// TODO: Split out updateNameOnce, add retry loop
 		const req = this.newReq<T>('PATCH', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
 		req.applyUpdateOpts(opts);
 		req.setBody(obj);
@@ -281,6 +335,7 @@ export class Client {
 	}
 
 	async streamGetName<T>(name: string, id: string, opts?: GetOpts<T> | null): Promise<GetStream<T>> {
+		// TODO: Split out streamGetNameOnce, add retry loop
 		const req = this.newReq<T>('GET', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
 		req.applyGetOpts(opts);
 
@@ -293,6 +348,7 @@ export class Client {
 	}
 
 	async streamListName<T>(name: string, opts?: ListOpts<T> | null): Promise<ListStream<T>> {
+		// TODO: Split out streamListNameOnce, add retry loop
 		const req = this.newReq<T>('GET', `${encodeURIComponent(name)}`);
 		req.applyListOpts(opts);
 
@@ -341,6 +397,7 @@ class Scanner {
 			let chunk: ReadableStreamReadResult<any>;
 
 			try {
+				// TODO: Add timeout (15s?) after which we return null, closing the stream
 				chunk = await this.reader.read();
 			} catch {
 				return null;
@@ -776,8 +833,6 @@ class Req<T> {
 		this.url.search = `?${this.params}`;
 
 		// TODO: Add timeout
-		// TODO: Add retry strategy
-		// TODO: Add Idempotency-Key support
 
 		const reqOpts: RequestInit = {
 			method: this.method,

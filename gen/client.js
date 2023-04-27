@@ -36,6 +36,34 @@ export class Client {
         const req = this.newReq('GET', '_client.ts');
         return req.fetchText();
     }
+    //// ShardServerConfig
+    async createShardServerConfig(obj) {
+        return this.createName('shardserverconfig', obj);
+    }
+    async deleteShardServerConfig(id, opts) {
+        return this.deleteName('shardserverconfig', id, opts);
+    }
+    async findShardServerConfig(shortID) {
+        return this.findName('shardserverconfig', shortID);
+    }
+    async getShardServerConfig(id, opts) {
+        return this.getName('shardserverconfig', id, opts);
+    }
+    async listShardServerConfig(opts) {
+        return this.listName('shardserverconfig', opts);
+    }
+    async replaceShardServerConfig(id, obj, opts) {
+        return this.replaceName('shardserverconfig', id, obj, opts);
+    }
+    async updateShardServerConfig(id, obj, opts) {
+        return this.updateName('shardserverconfig', id, obj, opts);
+    }
+    async streamGetShardServerConfig(id, opts) {
+        return this.streamGetName('shardserverconfig', id, opts);
+    }
+    async streamListShardServerConfig(opts) {
+        return this.streamListName('shardserverconfig', opts);
+    }
     //// Task
     async createTask(obj) {
         return this.createName('task', obj);
@@ -122,11 +150,15 @@ export class Client {
     }
     //// Generic
     async createName(name, obj) {
+        // TODO: Set Idempotency-Key
+        // TODO: Split out createNameOnce, add retry loop
         const req = this.newReq('POST', encodeURIComponent(name));
         req.setBody(obj);
         return req.fetchObj();
     }
     async deleteName(name, id, opts) {
+        // TODO: Set Idempotency-Key
+        // TODO: Split out deleteNameOnce, add retry loop
         const req = this.newReq('DELETE', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
         req.applyUpdateOpts(opts);
         return req.fetchVoid();
@@ -152,28 +184,35 @@ export class Client {
         return list[0];
     }
     async getName(name, id, opts) {
+        // TODO: Split out getNameOnce, add retry loop
         const req = this.newReq('GET', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
         req.applyGetOpts(opts);
         return req.fetchObj();
     }
     async listName(name, opts) {
+        // TODO: Split out listNameOnce, add retry loop
         const req = this.newReq('GET', `${encodeURIComponent(name)}`);
         req.applyListOpts(opts);
         return req.fetchList();
     }
     async replaceName(name, id, obj, opts) {
+        // TODO: Set Idempotency-Key
+        // TODO: Split out replaceNameOnce, add retry loop
         const req = this.newReq('PUT', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
         req.applyUpdateOpts(opts);
         req.setBody(obj);
         return req.fetchObj();
     }
     async updateName(name, id, obj, opts) {
+        // TODO: Set Idempotency-Key
+        // TODO: Split out updateNameOnce, add retry loop
         const req = this.newReq('PATCH', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
         req.applyUpdateOpts(opts);
         req.setBody(obj);
         return req.fetchObj();
     }
     async streamGetName(name, id, opts) {
+        // TODO: Split out streamGetNameOnce, add retry loop
         const req = this.newReq('GET', `${encodeURIComponent(name)}/${encodeURIComponent(id)}`);
         req.applyGetOpts(opts);
         const controller = new AbortController();
@@ -182,6 +221,7 @@ export class Client {
         return new GetStream(resp, controller, opts?.prev);
     }
     async streamListName(name, opts) {
+        // TODO: Split out streamListNameOnce, add retry loop
         const req = this.newReq('GET', `${encodeURIComponent(name)}`);
         req.applyListOpts(opts);
         const controller = new AbortController();
@@ -221,6 +261,7 @@ class Scanner {
         while (!this.buf.includes('\n')) {
             let chunk;
             try {
+                // TODO: Add timeout (15s?) after which we return null, closing the stream
                 chunk = await this.reader.read();
             }
             catch {
@@ -559,8 +600,6 @@ class Req {
     async fetch() {
         this.url.search = `?${this.params}`;
         // TODO: Add timeout
-        // TODO: Add retry strategy
-        // TODO: Add Idempotency-Key support
         const reqOpts = {
             method: this.method,
             headers: this.headers,

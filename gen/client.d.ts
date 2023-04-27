@@ -1,3 +1,7 @@
+export interface ShardServerConfig {
+    shardID?: string;
+    instanceID?: string;
+}
 export interface Task {
     userID?: string;
     name?: string;
@@ -13,6 +17,7 @@ export interface User {
     email?: string;
     password?: string;
     serviceAdmin?: boolean;
+    replicationClient?: boolean;
 }
 export interface Metadata {
     id: string;
@@ -54,6 +59,15 @@ export declare class Client {
     openAPI(): Promise<Object>;
     goClient(): Promise<string>;
     tsClient(): Promise<string>;
+    createShardServerConfig(obj: ShardServerConfig): Promise<ShardServerConfig & Metadata>;
+    deleteShardServerConfig(id: string, opts?: UpdateOpts<ShardServerConfig> | null): Promise<void>;
+    findShardServerConfig(shortID: string): Promise<ShardServerConfig & Metadata>;
+    getShardServerConfig(id: string, opts?: GetOpts<ShardServerConfig> | null): Promise<ShardServerConfig & Metadata>;
+    listShardServerConfig(opts?: ListOpts<ShardServerConfig> | null): Promise<(ShardServerConfig & Metadata)[]>;
+    replaceShardServerConfig(id: string, obj: ShardServerConfig, opts?: UpdateOpts<ShardServerConfig> | null): Promise<ShardServerConfig & Metadata>;
+    updateShardServerConfig(id: string, obj: ShardServerConfig, opts?: UpdateOpts<ShardServerConfig> | null): Promise<ShardServerConfig & Metadata>;
+    streamGetShardServerConfig(id: string, opts?: GetOpts<ShardServerConfig> | null): Promise<GetStream<ShardServerConfig>>;
+    streamListShardServerConfig(opts?: ListOpts<ShardServerConfig> | null): Promise<ListStream<ShardServerConfig>>;
     createTask(obj: Task): Promise<Task & Metadata>;
     deleteTask(id: string, opts?: UpdateOpts<Task> | null): Promise<void>;
     findTask(shortID: string): Promise<Task & Metadata>;

@@ -9,4 +9,4 @@ todo:
 	-git grep -e TODO --and --not -e ignoretodo | grep -v client.js.map
 
 update-client: && default
-	curl --silent --output client.ts 'https://api.solø.com/v1/_client.ts'
+	curl --silent --output client.ts 'https://a45ad4e2.api.solotask.io/v1/_client.ts'
